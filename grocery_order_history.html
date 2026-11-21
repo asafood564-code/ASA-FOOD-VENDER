@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History - ASA FOOD</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase_client.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FFD700', // Golden Yellow
+                        brown: {
+                            50: '#fdf8f6',
+                            100: '#f2e8e5',
+                            200: '#eaddd7',
+                            300: '#e0cec7',
+                            400: '#d2bab0',
+                            500: '#a18072',
+                            600: '#977669',
+                            700: '#846358',
+                            800: '#43302b',
+                            900: '#3E2723', // Rich Brown
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #FAFAFA;
+            color: #3E2723;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .header-bg {
+            background-color: #FFFFFF;
+        }
+        .order-card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #F1F2F4;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.015);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .order-card:active {
+            transform: scale(0.995);
+        }
+        .filter-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            background: #FFFFFF;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border: 1px solid #E5E7EB;
+            padding: 8px;
+            z-index: 110;
+            min-width: 160px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .filter-dropdown.show {
+            display: flex;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .dropdown-item {
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #4B5563;
+            text-align: left;
+            transition: all 0.15s;
+        }
+        .dropdown-item:hover, .dropdown-item.active {
+            background-color: #FFFBEB;
+            color: #D97706;
+        }
+        
+        /* Unified status chip layout, dimensions, rounded corners, padding and font weights */
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            border-width: 1px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .status-progress {
+            background-color: #FFF9EB;
+            border-color: #FEEFC3;
+            color: #E67E22;
+        }
+        .status-pickup {
+            background-color: #EEF6FC;
+            border-color: #D4E6F1;
+            color: #1E88E5;
+        }
+        .status-delivered {
+            background-color: #ECFDF5;
+            border-color: #D1F2EB;
+            color: #10B981;
+        }
+        .status-cancelled {
+            background-color: #FEF2F2;
+            border-color: #FADBD8;
+            color: #EF4444;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="pb-12">
+
+    <!-- Header -->
+    <header class="header-bg px-6 pt-12 pb-5 sticky top-0 z-50 border-b border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-3">
+                <button onclick="window.history.back()" class="w-8 h-8 flex items-center justify-center text-gray-800 hover:text-black transition-colors focus:outline-none">
+                    <i class="fa-solid fa-arrow-left text-lg"></i>
+                </button>
+                <div>
+                    <h1 class="text-xl font-extrabold text-gray-900 tracking-tight">Order History</h1>
+                    <p class="text-xs text-gray-500 font-medium mt-0.5">Manage and track your recent transactions.</p>
+                </div>
+            </div>
+            <button onclick="window.location.href='place_order.html'" class="px-3.5 py-2 bg-primary hover:bg-amber-400 active:scale-95 text-brown-900 font-black text-[11px] rounded-xl shadow-sm transition-all flex items-center gap-1.5 border border-amber-300">
+                <i class="fa-solid fa-file-invoice text-xs"></i> Custom Order
+            </button>
+        </div>
+
+        <!-- Filters (Clean text-and-chevron styles, exactly matching image) -->
+        <div class="flex gap-6 mt-4 pl-1">
+            <!-- Date Filter -->
+            <div class="relative">
+                <button onclick="toggleDropdown('date')" id="date-filter-btn" class="flex items-center gap-1.5 text-sm font-bold text-gray-900 hover:opacity-80 active:scale-95 transition-all focus:outline-none">
+                    <span>Last 30 Days</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-gray-500 mt-0.5"></i>
+                </button>
+                <div id="date-dropdown" class="filter-dropdown">
+                    <button onclick="selectFilter('date', '30days', 'Last 30 Days')" class="dropdown-item active">Last 30 Days</button>
+                    <button onclick="selectFilter('date', '6months', 'Last 6 Months')" class="dropdown-item">Last 6 Months</button>
+                    <button onclick="selectFilter('date', 'all', 'All Time')" class="dropdown-item">All Time</button>
+                </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="relative">
+                <button onclick="toggleDropdown('status')" id="status-filter-btn" class="flex items-center gap-1.5 text-sm font-bold text-gray-900 hover:opacity-80 active:scale-95 transition-all focus:outline-none">
+                    <span>All Status</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-gray-500 mt-0.5"></i>
+                </button>
+                <div id="status-dropdown" class="filter-dropdown">
+                    <button onclick="selectFilter('status', 'all', 'All Status')" class="dropdown-item active">All Status</button>
+                    <button onclick="selectFilter('status', 'progress', 'In Progress')" class="dropdown-item">In Progress</button>
+                    <button onclick="selectFilter('status', 'pickup', 'Pickup Item')" class="dropdown-item">Pickup Item</button>
+                    <button onclick="selectFilter('status', 'delivered', 'Delivered')" class="dropdown-item">Delivered</button>
+                    <button onclick="selectFilter('status', 'cancelled', 'Cancelled')" class="dropdown-item">Cancelled</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Orders Main List -->
+    <main id="orders-container" class="px-6 mt-6 space-y-4">
+        <!-- Injected dynamically based on current filtering and dynamic state -->
+    </main>
+
+    <!-- Digital Receipt Modal Popup -->
+    <div id="receipt-modal" class="fixed inset-0 modal-backdrop z-[120] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-white rounded-[32px] w-full max-w-md p-6 shadow-2xl border border-gray-100 transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+                <div>
+                    <h3 id="modal-order-id" class="text-lg font-black text-gray-900">#ORD-00000</h3>
+                    <p id="modal-order-date" class="text-xs text-gray-400 font-medium mt-0.5">Date</p>
+                </div>
+                <div id="modal-order-status" class="status-badge flex items-center gap-1">
+                    Status
+                </div>
+            </div>
+
+            <!-- Scrollable Items List -->
+            <div id="modal-items-list" class="overflow-y-auto no-scrollbar space-y-3 flex-1 mb-6 pr-1">
+                <!-- Items injected here -->
+            </div>
+
+            <!-- Price Breakdown -->
+            <div class="border-t border-gray-100 pt-4 space-y-2 mb-6 text-xs font-bold text-gray-500">
+                <div class="flex justify-between">
+                    <span>Subtotal</span>
+                    <span id="modal-subtotal" class="text-gray-900 font-black">₹0.00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Delivery Fee</span>
+                    <span id="modal-delivery" class="text-gray-900 font-black">₹0.00</span>
+                </div>
+                <div class="flex justify-between text-sm text-gray-900 font-black pt-2 border-t border-dashed border-gray-200">
+                    <span>Total Amount</span>
+                    <span id="modal-total" class="text-amber-500 text-base">₹0.00</span>
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeReceiptModal()" class="flex-1 py-3 border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all text-xs font-black text-gray-800 rounded-xl text-center">Close</button>
+                <button onclick="printReceipt()" class="flex-1 py-3 bg-primary hover:bg-amber-400 active:scale-95 transition-all text-xs font-black text-brown-900 rounded-xl text-center flex items-center justify-center gap-2 shadow-md">
+                    <i class="fa-solid fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Script -->
+    <script>
+        // High Fidelity Order Catalog with dynamic relative dates so they always match the "Last 30 Days" filter
+        const now = new Date();
+        const getRelativeDateStr = (daysAgo) => {
+            const d = new Date();
+            d.setDate(now.getDate() - daysAgo);
+            return d.toISOString().split('T')[0];
+        };
+        const getRelativeDisplayDate = (daysAgo) => {
+            const d = new Date();
+            d.setDate(now.getDate() - daysAgo);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        let ordersData = [];
+
+        // Fetch orders from Supabase dynamically
+        async function fetchSupabaseOrders() {
+            try {
+                const client = window.supabaseClient || window.supabase;
+                if (client && typeof client.from === 'function') {
+                    const { data, error } = await client
+                        .from('grocery_orders')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (!error && data) {
+                        ordersData = data.map(o => {
+                            let normStatus = 'delivered';
+                            const dbStatus = (o.status || '').toLowerCase();
+                            if (dbStatus.includes('progress') || dbStatus.includes('pending')) {
+                                normStatus = 'progress';
+                            } else if (dbStatus.includes('accept')) {
+                                normStatus = 'accept';
+                            } else if (dbStatus.includes('pickup') || dbStatus.includes('ready')) {
+                                normStatus = 'pickup';
+                            } else if (dbStatus.includes('cancel')) {
+                                normStatus = 'cancelled';
+                            }
+
+                            return {
+                                id: o.order_number || `#ORD-${o.id}`,
+                                date: o.created_at ? o.created_at.split('T')[0] : getRelativeDateStr(0),
+                                displayDate: o.display_date || new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                                status: normStatus,
+                                title: o.title || 'Miniket Rice',
+                                total: Number(o.total) || 323.65,
+                                deliveryFee: Number(o.delivery_fee) || 15.00,
+                                image: o.image || 'assets/grocery/prod_rice.png',
+                                otp: o.otp ? (typeof o.otp === 'string' ? o.otp.split('') : o.otp) : ['2', '5', '8', '1'],
+                                riderName: o.rider_name || 'Rahim Sheikh',
+                                items: typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || [{ name: 'Miniket Rice', price: 323.65, qty: 1, image: 'assets/grocery/prod_rice.png' }]),
+                                delivery_range: o.delivery_range
+                            };
+                        });
+                    } else if (error) {
+                        console.error('Supabase query error:', error);
+                    }
+                }
+            } catch (err) {
+                console.error('Supabase fetch error:', err);
+            }
+            renderOrders();
+        }
+
+        // Setup real-time Supabase postgres changes channel to update instantly when orders are placed
+        function setupRealtimeListener() {
+            try {
+                const client = window.supabaseClient || window.supabase;
+                if (client && typeof client.channel === 'function') {
+                    client.channel('realtime_grocery_orders')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'grocery_orders' }, payload => {
+                            console.log('Realtime DB update received, refreshing history:', payload);
+                            fetchSupabaseOrders();
+                        })
+                        .subscribe();
+                }
+            } catch (err) {
+                console.error('Realtime listener subscription skipped/failed:', err);
+            }
+        }
+
+        let activeDateFilter = '30days';
+        let activeStatusFilter = 'all';
+
+        function toggleDropdown(type) {
+            const dropdown = document.getElementById(`${type}-dropdown`);
+            const isShowing = dropdown.classList.contains('show');
+            
+            // Close all dropdowns
+            document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+
+            if (!isShowing) {
+                dropdown.classList.add('show');
+            }
+        }
+
+        function selectFilter(type, value, label) {
+            if (type === 'date') {
+                activeDateFilter = value;
+                document.getElementById('date-filter-btn').querySelector('span').innerText = label;
+                document.querySelectorAll('#date-dropdown .dropdown-item').forEach(i => {
+                    i.classList.toggle('active', i.innerText.trim() === label.trim());
+                });
+            } else if (type === 'status') {
+                activeStatusFilter = value;
+                document.getElementById('status-filter-btn').querySelector('span').innerText = label;
+                document.querySelectorAll('#status-dropdown .dropdown-item').forEach(i => {
+                    i.classList.toggle('active', i.innerText.trim() === label.trim());
+                });
+            }
+
+            document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+            renderOrders();
+        }
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#date-filter-btn') && !e.target.closest('#status-filter-btn') && !e.target.closest('.filter-dropdown')) {
+                document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        // Main Render Function matching conditional card styling and status chips exactly
+        function renderOrders() {
+            const container = document.getElementById('orders-container');
+            const today = new Date();
+
+            const filtered = ordersData.filter(order => {
+                // Status Filtering logic
+                const matchesStatus = activeStatusFilter === 'all' || order.status === activeStatusFilter;
+
+                // Date Filtering logic
+                let matchesDate = true;
+                const orderDate = new Date(order.date);
+                if (activeDateFilter === '30days') {
+                    const diffTime = Math.abs(today - orderDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    matchesDate = diffDays <= 30;
+                } else if (activeDateFilter === '6months') {
+                    const diffTime = Math.abs(today - orderDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    matchesDate = diffDays <= 180;
+                }
+
+                return matchesStatus && matchesDate;
+            });
+
+            // 1. Custom Status Priority Sorting
+            // Priority 1: progress (IN PROGRESS)
+            // Priority 2: pickup (PICKUP ITEM)
+            // Priority 3: delivered (DELIVERED)
+            // Priority 4: cancelled (CANCELLED)
+            const statusPriority = {
+                'progress': 1,
+                'accept': 1.5,
+                'pickup': 2,
+                'delivered': 3,
+                'cancelled': 4
+            };
+
+            filtered.sort((a, b) => {
+                const priorityA = statusPriority[a.status] || 99;
+                const priorityB = statusPriority[b.status] || 99;
+
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+
+                // 2. Secondary Sort: most recent order date/time first
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA; // Descending (most recent first)
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="py-16 text-center bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mt-4">
+                        <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500 text-2xl shadow-inner">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                        <h3 class="text-base font-black text-brown-900 mb-1">No orders found</h3>
+                        <p class="text-xs text-brown-500 max-w-xs mx-auto mb-6">We couldn't find any past grocery orders matching your selected filters.</p>
+                        <button onclick="resetFilters()" class="px-6 py-2.5 bg-primary text-brown-900 font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition-all">
+                            Reset Filters
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(order => {
+                const status = order.status;
+                let statusBadge = '';
+                let actionArea = '';
+                let middleRightArea = '';
+
+                // Unified styling structure for status badges
+                if (status === 'progress') {
+                    // IN PROGRESS Status Chip (Orange/Amber global theme)
+                    statusBadge = `
+                        <span class="status-chip status-progress">
+                            <i class="fa-solid fa-truck-fast"></i> IN PROGRESS
+                        </span>
+                    `;
+                    actionArea = `
+                        <div class="pt-4 mt-3 border-t border-gray-100 flex gap-3">
+                            <button onclick="viewReceipt('${order.id}')" class="flex-1 py-3 border border-primary hover:bg-amber-50 active:scale-95 transition-all text-xs font-black text-brown-900 rounded-xl text-center">
+                                View Receipt
+                            </button>
+                            <button onclick="cancelOrder('${order.id}')" class="flex-1 py-3 border border-red-200 hover:bg-red-50 active:scale-95 transition-all text-xs font-black text-red-500 rounded-xl text-center">
+                                Cancel Order
+                            </button>
+                        </div>
+                    `;
+                } else if (status === 'accept') {
+                    // ACCEPTED Status Chip
+                    statusBadge = `
+                        <span class="status-chip" style="background-color: #ECFDF5; border-color: #D1F2EB; color: #10B981;">
+                            <i class="fa-solid fa-circle-check"></i> ACCEPTED
+                        </span>
+                    `;
+                    actionArea = `
+                        <div class="pt-4 mt-3 border-t border-gray-100 flex gap-3">
+                            <button onclick="viewReceipt('${order.id}')" class="flex-1 py-3 border border-primary hover:bg-amber-50 active:scale-95 transition-all text-xs font-black text-brown-900 rounded-xl text-center">
+                                View Receipt
+                            </button>
+                            <button disabled style="background-color: #cccccc; border-color: #cccccc; cursor: not-allowed; color: #666666; pointer-events: none;" class="flex-1 py-3 border active:scale-100 transition-all text-xs font-black rounded-xl text-center">
+                                Reorder
+                            </button>
+                        </div>
+                    `;
+                } else if (status === 'pickup') {
+                    // PICKUP ITEM Status Chip (Blue)
+                    statusBadge = `
+                        <span class="status-chip status-pickup">
+                            <i class="fa-solid fa-motorcycle"></i> PICKUP ITEM
+                        </span>
+                    `;
+                    const otpDigits = order.otp || ['2', '5', '8', '1'];
+                    const rider = order.riderName || 'Rahim Sheikh';
+                    
+                    middleRightArea = `
+                        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                            <div class="flex gap-1.5">
+                                ${otpDigits.map(digit => `
+                                    <div class="w-9 h-9 border border-[#1E88E5] rounded-lg flex items-center justify-center bg-white text-[#1E88E5] text-base font-extrabold shadow-sm">
+                                        ${digit}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <p class="text-[10px] text-gray-500 font-bold">Rider: <span class="text-[#1E88E5] font-black">${rider}</span></p>
+                        </div>
+                    `;
+                    actionArea = '';
+                } else if (status === 'delivered') {
+                    // DELIVERED Status Chip (Green)
+                    statusBadge = `
+                        <span class="status-chip status-delivered">
+                            <i class="fa-solid fa-circle-check"></i> DELIVERED
+                        </span>
+                    `;
+                    actionArea = `
+                        <div class="pt-4 mt-3 border-t border-gray-100 flex gap-3">
+                            <button onclick="viewReceipt('${order.id}')" class="flex-1 py-3 border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all text-xs font-black text-gray-800 rounded-xl text-center">
+                                View
+                            </button>
+                            <button onclick="reorderNow('${order.id}')" class="flex-1 py-3 bg-[#FFD700] hover:bg-amber-400 active:scale-95 transition-all text-xs font-black text-brown-900 rounded-xl text-center shadow-md">
+                                Reorder
+                            </button>
+                        </div>
+                    `;
+                } else if (status === 'cancelled') {
+                    // CANCELLED Status Chip (Red)
+                    statusBadge = `
+                        <span class="status-chip status-cancelled">
+                            <i class="fa-solid fa-circle-xmark"></i> CANCELLED
+                        </span>
+                    `;
+                    actionArea = '';
+                }
+
+                // Calculate dynamic 48-hour delivery date range
+                let rangeText = order.delivery_range || order.deliveryRange;
+                if (!rangeText && order.date) {
+                    const start = new Date(order.date);
+                    const end = new Date(order.date);
+                    end.setDate(start.getDate() + 2); // exactly 48 hours later (2 days)
+                    
+                    const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    rangeText = `${fmt(start)} - ${fmt(end)}`;
+                }
+                if (!rangeText) {
+                    rangeText = 'May 12, 2026 - May 14, 2026';
+                }
+
+                // Render high quality layout
+                return `
+                    <div class="order-card">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-extrabold text-gray-900 text-sm tracking-tight">${order.id}</h3>
+                                <p class="text-[11px] text-gray-400 font-bold mt-0.5">${order.displayDate}</p>
+                            </div>
+                            ${statusBadge}
+                        </div>
+
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100 p-2">
+                                    <img src="${order.image}" class="w-full h-full object-contain" alt="Miniket Rice">
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800 text-sm leading-tight mb-1">${order.title}</h4>
+                                    <p class="text-xs text-gray-500 font-bold">Total <span class="font-black text-gray-900 ml-1">₹${order.total.toFixed(2)}</span></p>
+                                </div>
+                            </div>
+                            ${middleRightArea}
+                        </div>
+
+                        <!-- Est. Delivery Window Box -->
+                        <div class="mt-4 bg-amber-50/50 border border-amber-100 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs">
+                            <div class="flex items-center gap-2.5 text-brown-800">
+                                <i class="fa-solid fa-clock text-amber-500 text-sm"></i>
+                                <div>
+                                    <p class="text-[9px] uppercase tracking-wider font-black text-amber-700">Est. Delivery Window</p>
+                                    <p class="font-extrabold text-brown-900 mt-0.5">${rangeText}</p>
+                                </div>
+                            </div>
+                            <span class="text-[9px] font-black text-amber-600 bg-amber-50 border border-amber-200/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                48h Delivery
+                            </span>
+                        </div>
+
+                        ${actionArea}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function resetFilters() {
+            selectFilter('date', 'all', 'All Time');
+            selectFilter('status', 'all', 'All Status');
+        }
+
+        // Receipt Modal popup logic
+        function viewReceipt(orderId) {
+            const order = ordersData.find(o => o.id === orderId);
+            if (!order) return;
+
+            document.getElementById('modal-order-id').innerText = order.id;
+            document.getElementById('modal-order-date').innerText = order.displayDate;
+
+            const statusContainer = document.getElementById('modal-order-status');
+            if (order.status === 'progress') {
+                statusContainer.className = "status-badge text-[#E67E22] font-black text-xs";
+                statusContainer.innerHTML = `<i class="fa-solid fa-truck-fast"></i> IN PROGRESS`;
+            } else if (order.status === 'accept') {
+                statusContainer.className = "status-badge text-[#10B981] font-black text-xs";
+                statusContainer.innerHTML = `<i class="fa-solid fa-circle-check"></i> ACCEPTED`;
+            } else if (order.status === 'pickup') {
+                statusContainer.className = "status-badge text-[#1E88E5] font-black text-xs";
+                statusContainer.innerHTML = `<i class="fa-solid fa-motorcycle"></i> PICKUP ITEM`;
+            } else if (order.status === 'delivered') {
+                statusContainer.className = "status-badge text-[#10B981] font-black text-xs";
+                statusContainer.innerHTML = `<i class="fa-solid fa-circle-check"></i> DELIVERED`;
+            } else if (order.status === 'cancelled') {
+                statusContainer.className = "status-badge text-[#EF4444] font-black text-xs";
+                statusContainer.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> CANCELLED`;
+            }
+
+            const itemsList = document.getElementById('modal-items-list');
+            itemsList.innerHTML = order.items.map(item => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <img src="${item.image}" class="w-10 h-10 object-cover rounded-xl bg-white border border-gray-100 flex-shrink-0">
+                        <div>
+                            <h5 class="text-xs font-bold text-gray-800 mb-0.5">${item.name}</h5>
+                            <p class="text-[10px] text-gray-400 font-bold">Qty: ${item.qty}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-black text-gray-900">₹${(item.price * item.qty).toFixed(2)}</span>
+                </div>
+            `).join('');
+
+            const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            document.getElementById('modal-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('modal-delivery').innerText = `₹${order.deliveryFee.toFixed(2)}`;
+            document.getElementById('modal-total').innerText = `₹${order.total.toFixed(2)}`;
+
+            const modal = document.getElementById('receipt-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.querySelector('.bg-white').classList.remove('scale-95');
+            modal.querySelector('.bg-white').classList.add('scale-100');
+        }
+
+        function closeReceiptModal() {
+            const modal = document.getElementById('receipt-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.querySelector('.bg-white').classList.remove('scale-100');
+            modal.querySelector('.bg-white').classList.add('scale-95');
+        }
+
+        function printReceipt() {
+            window.print();
+        }
+
+        async function cancelOrder(orderId) {
+            if (!confirm('Are you sure you want to cancel this order?')) return;
+
+            try {
+                const client = window.supabaseClient || window.supabase;
+                if (client && typeof client.from === 'function') {
+                    const { error } = await client
+                        .from('grocery_orders')
+                        .update({ status: 'cancelled' })
+                        .eq('order_number', orderId);
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    // Update locally to reflect changes instantly
+                    const localOrder = ordersData.find(o => o.id === orderId);
+                    if (localOrder) {
+                        localOrder.status = 'cancelled';
+                        renderOrders();
+                    }
+                    
+                    alert('Order cancelled successfully.');
+                } else {
+                    throw new Error('Supabase client not initialized');
+                }
+            } catch (err) {
+                console.error('Error cancelling order:', err);
+                alert('Failed to cancel order: ' + (err.message || err));
+            }
+        }
+
+        function reorderNow(orderId) {
+            const order = ordersData.find(o => o.id === orderId);
+            if (!order) return;
+
+            let cartItems = JSON.parse(localStorage.getItem('groceryCart')) || [];
+
+            order.items.forEach(item => {
+                const existing = cartItems.find(i => i.name === item.name);
+                if (existing) {
+                    existing.qty += item.qty;
+                } else {
+                    cartItems.push({ name: item.name, price: item.price, image: item.image, qty: item.qty });
+                }
+            });
+
+            localStorage.setItem('groceryCart', JSON.stringify(cartItems));
+            window.location.href = 'cart.html';
+        }
+
+        window.onload = () => {
+            fetchSupabaseOrders();
+            setupRealtimeListener();
+        };
+    </script>
+</body>
+</html>

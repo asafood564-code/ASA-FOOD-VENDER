@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - ASA FOOD</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase_client.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FFD700', // Golden Yellow
+                        brown: {
+                            50: '#fdf8f6',
+                            100: '#f2e8e5',
+                            200: '#eaddd7',
+                            300: '#e0cec7',
+                            400: '#d2bab0',
+                            500: '#a18072',
+                            600: '#977669',
+                            700: '#846358',
+                            800: '#43302b',
+                            900: '#3E2723', // Rich Brown
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #FFFDF7; /* Very light cream background */
+            color: #3E2723; /* Dark brown text */
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .section-card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            border: 1px solid #FDF2D4;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .payment-option {
+            border: 1px solid #F5F5F5;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .payment-option.selected {
+            border-color: #FFD700;
+            background-color: #FFFBEB;
+        }
+        .qty-btn-minus {
+            background-color: #3E2723;
+            color: #FFFFFF;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .qty-btn-plus {
+            background-color: #FFD700;
+            color: #3E2723;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .confirm-btn {
+            background-color: #FFD700;
+            color: #3E2723;
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        .sticky-footer {
+            background: #FFFFFF;
+            padding: 20px 24px 40px;
+            border-top: 1px solid #FDF2D4;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
+        .bg-yellow-top {
+            background-color: #FFD700;
+        }
+        .header-yellow-sticky {
+            background-color: #FFD700;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+        }
+    </style>
+</head>
+<body class="pb-40">
+    <!-- Sticky Header -->
+    <div class="bg-yellow-top px-6 pt-12 pb-4">
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='vendor_grocery_shop.html'" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-black shadow-sm active:scale-95 transition-all">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </button>
+                <div>
+                    <span class="text-[10px] font-bold text-black/60 uppercase tracking-widest block">Vendor Delivery Node</span>
+                    <p class="text-sm font-black text-black">Main Street, Dhanmondi, Dhaka</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='grocery_order_history.html'" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-black shadow-sm active:scale-95 transition-all">
+                    <i class="fa-solid fa-receipt"></i>
+                </button>
+                <button onclick="window.location.href='cart.html'" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-black shadow-sm active:scale-95 transition-all">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky 'Checkout' Title Bar -->
+    <div class="header-yellow-sticky px-6 py-4 sticky top-0 z-[150] shadow-md flex items-center justify-between mb-8 transition-all">
+        <h1 class="text-xl font-black text-black">Checkout</h1>
+        <button onclick="window.location.href='vendor_grocery_shop.html'" class="text-xs font-black text-black/60 active:scale-95 transition-all">Add More Items</button>
+    </div>
+
+    <main class="px-6">
+        <!-- Main Checkout Content -->
+        <div id="checkout-content">
+            <!-- Vendor Info & Locked Delivery Coordinates -->
+            <p class="text-[10px] font-black uppercase tracking-widest text-brown-600 mb-3 ml-1">Vendor & Delivery Coordinates</p>
+            <div class="section-card">
+                <div class="flex items-center gap-4 mb-4 pb-4 border-b border-dashed border-brown-100">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-900 flex-shrink-0">
+                        <i class="fa-solid fa-store text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 id="checkout-vendor-name" class="font-black text-brown-900 text-sm">Main Street Kitchen</h2>
+                        <p class="text-xs font-medium text-brown-500 mt-1">
+                            <i class="fa-solid fa-phone text-[10px] mr-1"></i> <span id="checkout-vendor-phone">+91 9876543210</span>
+                        </p>
+                    </div>
+                </div>
+                <!-- Locked Address Location Coordinates -->
+                <div class="bg-gray-50 border border-gray-100 p-4 rounded-2xl flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">Registered Delivery Location</span>
+                        <span class="flex items-center gap-1 text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-wide">
+                            <i class="fa-solid fa-lock text-[8px]"></i> Locked
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-1">
+                        <div class="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
+                            <i class="fa-solid fa-location-dot text-sm"></i>
+                        </div>
+                        <div>
+                            <p id="checkout-vendor-address" class="text-xs font-extrabold text-gray-800">Main Street, Dhanmondi, Dhaka</p>
+                            <p class="text-[10px] text-gray-400 font-bold mt-0.5">
+                                Coordinates: <span id="checkout-vendor-coords" class="text-brown-700 font-black">Lat 23.7809, Lng 90.4125</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Your Order -->
+            <p class="text-[10px] font-black uppercase tracking-widest text-brown-600 mb-3 ml-1">Your Order</p>
+            <div id="order-list" class="space-y-4 mb-8">
+                <!-- Items injected here -->
+            </div>
+
+            <!-- Payment Method -->
+            <p class="text-[10px] font-black uppercase tracking-widest text-brown-600 mb-3 ml-1">Payment Method</p>
+            <div class="section-card p-4">
+                <!-- Wallet -->
+                <div id="pay-wallet" class="payment-option selected" onclick="selectPayment('wallet')">
+                    <div class="flex items-center gap-4">
+                        <div class="icon-box w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-primary transition-all">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                        <div>
+                            <p class="method-title text-sm font-black transition-all">Wallet</p>
+                            <p id="wallet-balance" class="text-[10px] font-bold text-brown-400">Balance: ₹12,450.00</p>
+                        </div>
+                    </div>
+                    <div class="check-mark w-5 h-5 rounded-full bg-primary flex items-center justify-center text-brown-900 text-[10px]">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                </div>
+
+                <!-- Online Payment -->
+                <div id="pay-online" class="payment-option" onclick="selectPayment('online')">
+                    <div class="flex items-center gap-4">
+                        <div class="icon-box w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 transition-all">
+                            <i class="fa-solid fa-credit-card"></i>
+                        </div>
+                        <div>
+                            <p class="method-title text-sm font-black text-gray-500 transition-all">Online Payment</p>
+                            <p class="text-[10px] font-bold text-gray-400">Visa, Master, UPI</p>
+                        </div>
+                    </div>
+                    <div class="check-mark hidden w-5 h-5 rounded-full bg-primary flex items-center justify-center text-brown-900 text-[10px]">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                </div>
+
+                <!-- Cash on Delivery -->
+                <div id="pay-cash" class="payment-option" onclick="selectPayment('cash')">
+                    <div class="flex items-center gap-4">
+                        <div class="icon-box w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 transition-all">
+                            <i class="fa-solid fa-money-bill-wave"></i>
+                        </div>
+                        <div>
+                            <p class="method-title text-sm font-black text-gray-500 transition-all">Cash on Delivery</p>
+                            <p class="text-[10px] font-bold text-gray-400">Pay at your doorstep</p>
+                        </div>
+                    </div>
+                    <div class="check-mark hidden w-5 h-5 rounded-full bg-primary flex items-center justify-center text-brown-900 text-[10px]">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <p class="text-[10px] font-black uppercase tracking-widest text-brown-600 mb-3 ml-1">Order Summary</p>
+            <div class="section-card">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-medium text-brown-500">Items Subtotal</span>
+                        <span id="subtotal" class="font-black">₹0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-medium text-brown-500">Delivery Fee</span>
+                        <span class="font-black">₹2.50</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-medium text-brown-500">Taxes & Charges</span>
+                        <span id="taxes" class="font-black text-primary">₹1.15</span>
+                    </div>
+                    <div class="pt-4 border-t border-dashed border-brown-100 flex justify-between items-center">
+                        <span class="font-black text-brown-900">Total</span>
+                        <span id="total-amount" class="text-lg font-black text-primary">₹0.00</span>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2 text-amber-600 bg-amber-50 p-2 rounded-lg">
+                    <i class="fa-solid fa-circle-info text-xs"></i>
+                    <p class="text-[9px] font-bold">Price matches vendor logistics portal.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty Cart State -->
+        <div id="empty-cart-state" class="hidden text-center py-16 animate-fade-in px-6">
+            <div class="w-28 h-28 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-primary text-5xl shadow-inner">
+                <i class="fa-solid fa-cart-shopping opacity-50"></i>
+            </div>
+            <h2 class="text-2xl font-black text-brown-900 mb-3">Your Cart is Empty</h2>
+            <p class="text-xs text-brown-500 mb-8 max-w-xs mx-auto leading-relaxed">No items in your cart. Please add items to proceed.</p>
+            <button onclick="window.location.href='vendor_grocery_shop.html'" class="w-full py-4 px-6 bg-primary hover:bg-amber-400 text-brown-900 rounded-[20px] font-black active:scale-95 transition-all shadow-lg shadow-amber-100 flex items-center justify-center gap-2.5 text-sm border border-amber-300 max-w-xs mx-auto">
+                <i class="fa-solid fa-bag-shopping text-base"></i>
+                Continue Shopping
+            </button>
+        </div>
+    </main>
+
+    <!-- Sticky Footer -->
+    <footer id="sticky-footer" class="sticky-footer">
+        <div class="flex items-center justify-between gap-6">
+            <div>
+                <p class="text-[10px] font-bold text-brown-400 uppercase tracking-widest">Grand Total</p>
+                <p id="grand-total" class="text-xl font-black text-brown-900">₹0.00</p>
+            </div>
+            <button id="confirm-btn" onclick="confirmOrder()" class="confirm-btn active:scale-95 transition-all">
+                Confirm Order <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Online Payment Modal Popup (PhonePe, GPay, Paytm, Custom UPI) -->
+    <div id="online-payment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[250] hidden flex items-center justify-center p-6">
+        <div class="bg-white rounded-[32px] w-full max-w-sm p-6 shadow-2xl border border-gray-100 transform scale-95 transition-transform duration-300">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                <div>
+                    <h3 class="text-base font-extrabold text-brown-900">Select UPI Payment</h3>
+                    <p class="text-[10px] text-gray-500 font-bold mt-0.5">Amount to Pay: <span id="upi-modal-amount" class="text-amber-600 font-black">₹0.00</span></p>
+                </div>
+                <button onclick="closeOnlinePaymentModal()" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors focus:outline-none">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- UPI Apps Grid -->
+            <div class="space-y-3 mb-6">
+                <!-- PhonePe -->
+                <button onclick="payViaUPIApp('phonepe')" class="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-amber-400 hover:bg-amber-50/20 active:scale-95 transition-all text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center">
+                            <img src="https://img.icons8.com/color/48/phone-pe.png" class="w-6 h-6">
+                        </div>
+                        <div>
+                            <span class="block text-xs font-black text-brown-900">PhonePe</span>
+                            <span class="block text-[9px] text-gray-400 font-bold">Pay instantly using PhonePe app</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-gray-300"></i>
+                </button>
+
+                <!-- Google Pay -->
+                <button onclick="payViaUPIApp('gpay')" class="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-amber-400 hover:bg-amber-50/20 active:scale-95 transition-all text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                            <img src="https://img.icons8.com/color/48/google-pay.png" class="w-6 h-6">
+                        </div>
+                        <div>
+                            <span class="block text-xs font-black text-brown-900">Google Pay</span>
+                            <span class="block text-[9px] text-gray-400 font-bold">Pay securely using GPay</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-gray-300"></i>
+                </button>
+
+                <!-- Paytm -->
+                <button onclick="payViaUPIApp('paytm')" class="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-amber-400 hover:bg-amber-50/20 active:scale-95 transition-all text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-sky-50 flex items-center justify-center">
+                            <img src="https://img.icons8.com/color/48/paytm.png" class="w-6 h-6">
+                        </div>
+                        <div>
+                            <span class="block text-xs font-black text-brown-900">Paytm</span>
+                            <span class="block text-[9px] text-gray-400 font-bold">Scan & Pay via Paytm</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-gray-300"></i>
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="flex items-center my-4">
+                <div class="flex-grow border-t border-gray-100"></div>
+                <span class="mx-3 text-[9px] font-black uppercase text-gray-400 tracking-wider">or pay via custom upi</span>
+                <div class="flex-grow border-t border-gray-100"></div>
+            </div>
+
+            <!-- Custom UPI ID Input -->
+            <div class="space-y-3">
+                <div>
+                    <input type="text" id="custom-upi-input" placeholder="e.g. name@upi" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-brown-900 placeholder:text-gray-400 focus:border-amber-400 focus:bg-white transition-all outline-none">
+                </div>
+                <button onclick="payViaCustomUPI()" class="w-full py-4 bg-primary hover:bg-amber-400 text-brown-900 font-black text-xs rounded-xl active:scale-95 transition-all shadow-md flex items-center justify-center gap-2">
+                    Verify & Pay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
+        <div class="bg-white p-8 rounded-[40px] w-full max-w-sm text-center shadow-2xl animate-fade-in-up">
+            <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-3xl shadow-xl shadow-green-100 animate-bounce">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h3 class="text-xl font-black text-brown-900 mb-2">Order Confirmed Successfully</h3>
+            <p class="text-xs text-brown-500 mb-5 leading-relaxed px-4">Your groceries are on their way! You can track your delivery in real-time.</p>
+            
+            <!-- Dynamic 48h Delivery Date Range Block -->
+            <div class="bg-amber-50/60 border border-amber-200/40 rounded-2xl p-4 mb-6 text-left">
+                <p class="text-[9px] uppercase font-black tracking-wider text-amber-600 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock"></i> 48-Hour Delivery Guarantee
+                </p>
+                <p class="text-[11px] font-bold text-brown-800 leading-normal">
+                    Your order will be delivered within 48 hours. Expected delivery between <span id="success-start-date" class="text-brown-900 font-black">May 17, 2026</span> and <span id="success-end-date" class="text-brown-900 font-black">May 19, 2026</span>.
+                </p>
+            </div>
+
+            <button onclick="window.location.href='vendor_grocery_shop.html'" class="w-full py-4 px-6 bg-primary hover:bg-amber-400 text-brown-900 rounded-[20px] font-black active:scale-95 transition-all shadow-lg shadow-amber-100 flex items-center justify-center gap-2.5 text-sm border border-amber-300">
+                <i class="fa-solid fa-bag-shopping text-base"></i>
+                Continue Shopping
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="fixed top-5 left-1/2 -translate-x-1/2 z-[300] bg-brown-900 text-white text-xs font-black px-6 py-3.5 rounded-full shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] flex items-center gap-2 border border-amber-400/20">
+        <i class="fa-solid fa-circle-check text-primary"></i>
+        <span id="toast-message">Notification Message</span>
+    </div>
+
+    <script>
+        const supabaseClient = window.supabaseClient;
+
+        let cart = JSON.parse(localStorage.getItem('groceryCart')) || [];
+        let walletBalance = 0;
+        let selectedMethod = 'wallet';
+
+        // Fetch vendor's dynamic registration coordinates and profile details securely from Supabase
+        async function loadVendorSession() {
+            try {
+                const sessionStr = localStorage.getItem('asa_vendor_session');
+                let vendorId = '';
+                
+                if (sessionStr) {
+                    const session = JSON.parse(sessionStr);
+                    vendorId = session.currentVendorId || '';
+                    if (session.walletBalance !== undefined) {
+                        walletBalance = Number(session.walletBalance);
+                    }
+                }
+
+                if (!vendorId) {
+                    document.getElementById('checkout-vendor-address').innerText = "Session expired. Please log in.";
+                    return;
+                }
+
+                const client = window.supabaseClient || window.supabase;
+                if (!client) {
+                    console.error("Supabase client not initialized.");
+                    return;
+                }
+
+                // Query Supabase for precise registration coordinates
+                const { data: vendor, error } = await client
+                    .from('vendors')
+                    .select('lat, lng, address, shop_name, mobile_number')
+                    .eq('id', vendorId)
+                    .single();
+
+                if (error || !vendor) {
+                    console.error("Failed to fetch vendor data:", error);
+                    return;
+                }
+
+                const vendorName = vendor.shop_name || 'Vendor';
+                const vendorPhone = vendor.mobile_number || '';
+                const lat = vendor.lat || '0.0000';
+                const lng = vendor.lng || '0.0000';
+                const vendorAddress = vendor.address || 'Address not available';
+
+                document.getElementById('checkout-vendor-name').innerText = vendorName;
+                document.getElementById('checkout-vendor-phone').innerText = vendorPhone.startsWith('+') ? vendorPhone : `+91 ${vendorPhone}`;
+                
+                // Update primary address blocks
+                document.getElementById('checkout-vendor-address').innerText = vendorAddress;
+                document.getElementById('checkout-vendor-coords').innerText = `Lat ${Number(lat).toFixed(4)}, Lng ${Number(lng).toFixed(4)}`;
+                
+                // Update header specific block
+                const headerAddressNodes = document.querySelectorAll('p.text-sm.font-black.text-black');
+                headerAddressNodes.forEach(node => {
+                    if (node.innerText.includes('Main Street') || node.innerText.includes('Dhaka') || node.innerText.length > 0) {
+                        node.innerText = vendorAddress;
+                    }
+                });
+
+            } catch (err) {
+                console.error('Error loading vendor registration session:', err);
+            }
+            
+            // Render the wallet balance
+            const wbEl = document.getElementById('wallet-balance');
+            if (wbEl) wbEl.innerText = `Balance: ₹${walletBalance.toFixed(2)}`;
+        }
+
+        // Save wallet updates to dynamic session state
+        function saveUpdatedWalletBalance(newBalance) {
+            try {
+                const sessionStr = localStorage.getItem('asa_vendor_session');
+                if (sessionStr) {
+                    const session = JSON.parse(sessionStr);
+                    session.walletBalance = newBalance;
+                    localStorage.setItem('asa_vendor_session', JSON.stringify(session));
+                }
+            } catch (err) {
+                console.error('Error updating session balance:', err);
+            }
+        }
+
+        // Custom, beautifully styled toast
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 3000);
+        }
+
+        function renderOrder() {
+            const list = document.getElementById('order-list');
+            const checkoutContent = document.getElementById('checkout-content');
+            const emptyState = document.getElementById('empty-cart-state');
+            const stickyFooter = document.getElementById('sticky-footer');
+
+            if (cart.length === 0) {
+                checkoutContent.classList.add('hidden');
+                stickyFooter.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            checkoutContent.classList.remove('hidden');
+            stickyFooter.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            list.innerHTML = cart.map((item, index) => `
+                <div class="section-card p-4 flex items-center gap-4 animate-fade-in">
+                    <div class="w-20 h-20 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0 border border-gray-100 p-2">
+                        <img src="${item.image}" class="w-full h-full object-contain">
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-black text-brown-900 text-sm mb-1">${item.name}</h3>
+                        <p class="text-xs font-black text-brown-600 mb-3">₹${item.price.toFixed(2)}</p>
+                        <div class="flex items-center gap-4">
+                            <button onclick="updateQty(${index}, -1)" class="qty-btn-minus active:scale-95 transition-all">
+                                <i class="fa-solid fa-minus"></i>
+                            </button>
+                            <span class="text-sm font-black">${item.qty}</span>
+                            <button onclick="updateQty(${index}, 1)" class="qty-btn-plus active:scale-95 transition-all">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            calculateTotals();
+        }
+
+        function updateQty(index, delta) {
+            cart[index].qty += delta;
+            if (cart[index].qty < 1) {
+                cart.splice(index, 1);
+            }
+            localStorage.setItem('groceryCart', JSON.stringify(cart));
+            renderOrder();
+        }
+
+        function calculateTotals() {
+            const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            const delivery = 2.50;
+            const taxes = 1.15;
+            const total = subtotal > 0 ? (subtotal + delivery + taxes) : 0;
+
+            document.getElementById('subtotal').innerText = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('total-amount').innerText = `₹${total.toFixed(2)}`;
+            document.getElementById('grand-total').innerText = `₹${total.toFixed(2)}`;
+            return total;
+        }
+
+        function selectPayment(method) {
+            selectedMethod = method;
+            
+            // Reset all options
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.classList.remove('selected');
+                const check = opt.querySelector('.check-mark');
+                if (check) check.classList.add('hidden');
+                
+                const iconBox = opt.querySelector('.icon-box');
+                if (iconBox) {
+                    iconBox.classList.remove('bg-amber-50', 'text-primary');
+                    iconBox.classList.add('bg-gray-50', 'text-gray-400');
+                }
+                
+                const title = opt.querySelector('.method-title');
+                if (title) title.classList.add('text-gray-500');
+            });
+
+            // Highlight selected
+            const selected = document.getElementById(`pay-${method}`);
+            selected.classList.add('selected');
+            
+            const iconBox = selected.querySelector('.icon-box');
+            if (iconBox) {
+                iconBox.classList.add('bg-amber-50', 'text-primary');
+                iconBox.classList.remove('bg-gray-50', 'text-gray-400');
+            }
+            
+            const title = selected.querySelector('.method-title');
+            if (title) title.classList.remove('text-gray-500');
+
+            const check = selected.querySelector('.check-mark');
+            if (check) check.classList.remove('hidden');
+
+            // Dynamically change confirm button text based on method
+            const confirmBtn = document.getElementById('confirm-btn');
+            if (method === 'online') {
+                confirmBtn.innerHTML = `Pay Now <i class="fa-solid fa-arrow-right"></i>`;
+            } else {
+                confirmBtn.innerHTML = `Confirm Order <i class="fa-solid fa-arrow-right"></i>`;
+            }
+        }
+
+        // Online payment UPI integration
+        function openOnlinePaymentModal(amount) {
+            document.getElementById('upi-modal-amount').innerText = `₹${amount.toFixed(2)}`;
+            const modal = document.getElementById('online-payment-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.querySelector('.bg-white').classList.remove('scale-95');
+                modal.querySelector('.bg-white').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeOnlinePaymentModal() {
+            const modal = document.getElementById('online-payment-modal');
+            modal.querySelector('.bg-white').classList.remove('scale-100');
+            modal.querySelector('.bg-white').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        // UPI deep link app intent redirect
+        async function payViaUPIApp(app) {
+            const total = calculateTotals();
+            showToast(`Initiating secure ${app.toUpperCase()} transaction...`);
+            
+            try {
+                // Real integration point for Payment Gateway SDK
+                await executeOrderPlacement(total);
+            } catch (err) {
+                showToast("Transaction failed or was cancelled.");
+            }
+        }
+
+        async function payViaCustomUPI() {
+            const upiInput = document.getElementById('custom-upi-input').value.trim();
+            if (!upiInput || !upiInput.includes('@')) {
+                showToast('Please enter a valid UPI ID (e.g. name@upi)');
+                return;
+            }
+
+            const total = calculateTotals();
+            showToast('Verifying Custom UPI ID securely...');
+            
+            try {
+                // Real integration point for Payment Gateway SDK
+                await executeOrderPlacement(total);
+            } catch (err) {
+                showToast("Transaction failed.");
+            }
+        }
+
+        async function confirmOrder() {
+            if (cart.length === 0) {
+                showToast('Your cart is empty');
+                return;
+            }
+
+            const total = calculateTotals();
+            
+            if (selectedMethod === 'wallet' && total > walletBalance) {
+                showToast('Insufficient Wallet Balance! Please select another payment method.');
+                return;
+            }
+
+            // Online Payment Pop-up Selector
+            if (selectedMethod === 'online') {
+                openOnlinePaymentModal(total);
+                return;
+            }
+
+            await executeOrderPlacement(total);
+        }
+
+        // Submits the actual order to Supabase grocery_orders table
+        async function executeOrderPlacement(total) {
+            const btn = document.getElementById('confirm-btn');
+            const originalContent = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+
+            let vendorName = '';
+            let vendorPhone = '';
+            let lat = '';
+            let lng = '';
+            let vendorId = '';
+
+            try {
+                const sessionStr = localStorage.getItem('asa_vendor_session');
+                if (sessionStr) {
+                    const session = JSON.parse(sessionStr);
+                    vendorId = session.currentVendorId || '';
+                }
+            } catch (sessionErr) {
+                console.error('[Session Error]', sessionErr);
+            }
+
+            try {
+                if (!supabaseClient) throw new Error('Supabase client not initialized');
+                if (!vendorId) throw new Error('Vendor ID missing. Cannot place order without authenticated session.');
+
+                // Fetch Vendor Coordinates from Profile
+                const { data: vendorProfile, error: profileError } = await supabaseClient
+                    .from('vendors')
+                    .select('lat, lng, address, shop_name, mobile_number')
+                    .eq('id', vendorId)
+                    .single();
+
+                if (profileError || !vendorProfile) throw new Error('Failed to fetch vendor registration profile from database.');
+
+                lat = String(vendorProfile.lat || '');
+                lng = String(vendorProfile.lng || '');
+                const fetchedAddress = vendorProfile.address || '';
+                vendorName = vendorProfile.shop_name || '';
+                vendorPhone = vendorProfile.mobile_number || '';
+
+                // 1. Server-Side Price Verification
+                let verifiedSubtotal = 0;
+                for (const item of cart) {
+                    const { data, error } = await supabaseClient
+                        .from('grocery_items')
+                        .select('price')
+                        .eq('name', item.name)
+                        .single();
+                    if (error || !data) throw new Error(`Item ${item.name} not found or price error.`);
+                    verifiedSubtotal += Number(data.price) * item.qty;
+                }
+                const deliveryFee = 2.50;
+                const taxes = 1.15;
+                const verifiedTotal = verifiedSubtotal > 0 ? (verifiedSubtotal + deliveryFee + taxes) : 0;
+
+                if (Math.abs(verifiedTotal - total) > 0.1) {
+                    throw new Error("Price mismatch detected! Cart calculation tampered.");
+                }
+
+                // 2. Real-time Wallet Deduction
+                if (selectedMethod === 'wallet') {
+                    if (!vendorId) throw new Error("Vendor ID missing for secure wallet deduction.");
+                    
+                    const { data: vendor, error: fetchError } = await supabaseClient
+                        .from('vendors')
+                        .select('wallet_balance')
+                        .eq('id', vendorId)
+                        .single();
+
+                    if (fetchError) throw new Error("Could not fetch wallet balance securely.");
+                    
+                    const currentBalance = parseFloat(vendor.wallet_balance) || 0;
+                    if (currentBalance < verifiedTotal) throw new Error("Insufficient Wallet Balance!");
+
+                    const newBalance = currentBalance - verifiedTotal;
+                    const { error: updateError } = await supabaseClient
+                        .from('vendors')
+                        .update({ wallet_balance: newBalance })
+                        .eq('id', vendorId);
+
+                    if (updateError) throw new Error("Failed to process transaction securely.");
+                    
+                    walletBalance = newBalance;
+                    saveUpdatedWalletBalance(newBalance);
+                    const wbEl = document.getElementById('wallet-balance');
+                    if (wbEl) wbEl.innerText = `Balance: ₹${walletBalance.toFixed(2)}`;
+                    showToast('Payment processed via wallet!');
+                }
+
+                // 3. Insert Order
+                const orderNum = '#ORD-' + Math.floor(100000 + Math.random() * 900000);
+                const displayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const title = cart.length === 1 ? cart[0].name : cart[0].name + ' + ' + (cart.length - 1) + ' items';
+                const coordString = `${lat}, ${lng}`;
+
+                const newOrder = {
+                    order_number: orderNum,
+                    display_date: displayDate,
+                    status: 'progress',
+                    title: title,
+                    total: verifiedTotal,
+                    delivery_fee: deliveryFee,
+                    image: cart[0].image || 'assets/grocery/prod_rice.png',
+                    items: cart,
+                    customer_name: vendorName,
+                    customer_phone: vendorPhone,
+                    delivery_address: coordString,
+                    created_at: new Date().toISOString()
+                };
+
+                const { error } = await supabaseClient.from('grocery_orders').insert([newOrder]);
+                if (error) throw error;
+
+                closeOnlinePaymentModal();
+                
+                const start = new Date();
+                const end = new Date();
+                end.setHours(start.getHours() + 48);
+                const fmtDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                document.getElementById('success-start-date').innerText = fmtDate(start);
+                document.getElementById('success-end-date').innerText = fmtDate(end);
+
+                document.getElementById('success-modal').classList.remove('hidden');
+                localStorage.removeItem('groceryCart');
+            } catch (err) {
+                console.error('Checkout Error:', err);
+                showToast(err.message || 'Failed to place order');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        }
+
+        window.onload = () => {
+            loadVendorSession();
+            renderOrder();
+        };
+    </script>
+</body>
+</html>

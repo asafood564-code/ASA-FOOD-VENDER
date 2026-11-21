@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASA FOOD Vendor - Professional Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Restaurant Management Styles */
+        .slider-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .slider-container::-webkit-scrollbar {
+            display: none;
+        }
+        .slider-item {
+            flex: 0 0 100%;
+            scroll-snap-align: start;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .upload-box {
+            border: 2px dashed #E5E7EB;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-box:hover {
+            border-color: #FFC107;
+            background: #FFF5F5;
+        }
+        .cuisine-chip {
+            padding: 8px 16px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid #E5E7EB;
+            color: #9CA3AF;
+            transition: all 0.3s;
+        }
+        .cuisine-chip.active {
+            background: #FFC107;
+            color: white;
+            border-color: #FFC107;
+        }
+        .time-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #F3F4F6;
+        }
+        .time-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FFD700',
+                        primaryDark: '#DAA520',
+                        secondary: '#3E2723',
+                        accent: '#5D4037',
+                        bgLight: '#FFF8E1',
+                        bgGray: '#FDFDFD'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bgGray font-sans overflow-x-hidden">
+
+    <!-- Content Container -->
+    <div id="app" class="min-h-screen pb-24">
+        <!-- Views will be injected here -->
+    </div>
+
+    <!-- Bottom Navigation Bar (Hidden on Login) -->
+    <nav id="bottom-nav" class="fixed bottom-4 left-2 right-2 h-20 bg-secondary rounded-[32px] shadow-2xl flex items-center justify-around px-2 z-50 transition-all duration-500 translate-y-[200%] pointer-events-none">
+        <button onclick="navigateTo('home')" class="nav-item flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all duration-300 relative text-white/40">
+            <i class="fa-solid fa-house text-lg mb-1"></i>
+            <span class="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Home</span>
+            <div class="active-bar absolute -bottom-1 w-4 h-1 bg-primary rounded-full opacity-0 transition-all"></div>
+        </button>
+        <button onclick="window.location.href='vendor_grocery_shop.html'" class="nav-item flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all duration-300 relative text-white/40">
+            <i class="fa-solid fa-basket-shopping text-lg mb-1"></i>
+            <span class="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Grocery</span>
+            <div class="active-bar absolute -bottom-1 w-4 h-1 bg-primary rounded-full opacity-0 transition-all"></div>
+        </button>
+        <button onclick="navigateTo('status')" class="nav-item flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all duration-300 relative text-white/40">
+            <i class="fa-solid fa-shop text-lg mb-1"></i>
+            <span class="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Restaurant</span>
+            <div class="active-bar absolute -bottom-1 w-4 h-1 bg-primary rounded-full opacity-0 transition-all"></div>
+        </button>
+        <button onclick="navigateTo('menu')" class="nav-item flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all duration-300 relative text-white/40">
+            <i class="fa-solid fa-bell-concierge text-lg mb-1"></i>
+            <span class="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Menu</span>
+            <div class="active-bar absolute -bottom-1 w-4 h-1 bg-primary rounded-full opacity-0 transition-all"></div>
+        </button>
+        <button onclick="navigateTo('profile')" class="nav-item flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all duration-300 relative text-white/40">
+            <i class="fa-solid fa-user-large text-lg mb-1"></i>
+            <span class="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Profile</span>
+            <div class="active-bar absolute -bottom-1 w-4 h-1 bg-primary rounded-full opacity-0 transition-all"></div>
+        </button>
+    </nav>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-[100] transform -translate-y-20 transition-all duration-300 opacity-0 pointer-events-none">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- Delete Confirmation Popup -->
+    <div id="delete-confirm-overlay" class="fixed inset-0 bg-black/60 z-[9999] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center px-6">
+        <div id="delete-confirm-modal" class="bg-white w-full max-w-sm rounded-[36px] p-6 transform scale-90 opacity-0 transition-all duration-300 flex flex-col items-center text-center shadow-2xl border border-gray-100">
+            <!-- Alert/Warning Icon -->
+            <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                <i class="fa-solid fa-trash-can text-red-500 text-2xl"></i>
+            </div>
+            
+            <!-- Heading -->
+            <h3 class="text-gray-900 font-extrabold text-xl mb-2 font-['Outfit']">Delete Product?</h3>
+            
+            <!-- Sub-text message -->
+            <p class="text-gray-400 font-medium text-xs leading-relaxed mb-6 px-2">Are you sure you want to permanently delete this item from your menu? This action cannot be undone.</p>
+            
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3 w-full">
+                <button onclick="closeDeleteConfirmModal()" class="flex-1 py-3.5 border border-gray-200 text-gray-500 font-bold rounded-2xl active:scale-95 transition-all text-sm hover:bg-gray-50 font-['Poppins']">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteProduct()" class="flex-1 py-3.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl active:scale-95 transition-all text-sm shadow-lg shadow-red-100 font-['Poppins']">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase_client.js"></script>
+    <script src="script.js"></script>
+    <!-- App Startup: Pre-load all system_settings config into AppConfig cache -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.AppConfig) {
+            AppConfig.load().then(() => {
+                console.info('[App Startup] AppConfig pre-loaded successfully.');
+            }).catch(err => {
+                console.warn('[App Startup] AppConfig pre-load failed:', err.message);
+            });
+        }
+    });
+    </script>
+
+    <!-- ════════════════════════════════════════════════════════════
+         NEW ORDER NOTIFICATION SIREN
+         Powered by Supabase Realtime — no PHP or polling needed.
+         Listens for new INSERT events on the 'orders' table.
+    ════════════════════════════════════════════════════════════ -->
+    <audio id="orderSiren" preload="auto" style="display:none;" aria-hidden="true">
+        <source src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" type="audio/ogg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+    /* ──────────────────────────────────────────────────────────────
+       ORDER SIREN & POPUP BACKUP — Supabase Realtime (index.html)
+       Subscribes to 'orders' table INSERT events via Supabase Realtime.
+       Plays #orderSiren and shows the incoming order popup immediately.
+    ────────────────────────────────────────────────────────────── */
+    (function initRealtimeOrderSiren() {
+        const siren = document.getElementById('orderSiren');
+        if (!siren) {
+            console.warn('[OrderSiren] Audio element #orderSiren not found.');
+            return;
+        }
+
+        if (typeof window.supabaseClient === 'undefined') {
+            console.warn('[OrderSiren] Supabase client not found. Cannot initialize realtime siren.');
+            return;
+        }
+
+        console.info('[OrderSiren] 🚀 Subscribing to real-time orders table for new orders...');
+
+        window.supabaseClient
+            .channel('public:orders:main-siren')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
+                try {
+                    console.info(`[OrderSiren] 🔔 New order via Realtime! Order ID: ${payload.new.id}`);
+                    
+                    const currentVendorId = (typeof state !== 'undefined' && state) ? state.currentVendorId : (window.state ? window.state.currentVendorId : null);
+                    
+                    // Filter: Only trigger if the order belongs to this vendor
+                    if (currentVendorId && payload.new.vendor_id === currentVendorId) {
+                        siren.currentTime = 0;
+                        const playPromise = siren.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(err => {
+                                console.warn('[OrderSiren] ⚠️ Autoplay blocked. User interaction required first.', err.message);
+                            });
+                        }
+
+                        // Trigger sync and show incoming order modal as backup
+                        if (typeof syncDataFromSupabase === 'function') {
+                            syncDataFromSupabase().then(() => {
+                                // Find the newly inserted order in state.todayOrders
+                                const newOrder = state.todayOrders.find(o => o.fullId === payload.new.id || o.id === payload.new.id || o.mainOrderId === payload.new.id);
+                                if (newOrder && typeof showIncomingOrderModal === 'function') {
+                                    showIncomingOrderModal({
+                                        id: newOrder.fullId || newOrder.id,
+                                        total_price: newOrder.price,
+                                        items: newOrder.items || [],
+                                        customer_name: newOrder.customerName || 'Customer'
+                                    });
+                                }
+                            }).catch(err => {
+                                console.error('[OrderSiren Sync Error]:', err);
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error('[OrderSiren Callback Exception]:', err);
+                }
+            })
+            .subscribe(status => {
+                if (status === 'SUBSCRIBED') {
+                    console.info('[OrderSiren] ✅ Connected to Supabase Realtime successfully.');
+                }
+            });
+    })();
+    </script>
+
+
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - ASA FOOD</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #FFFFFF;
+            color: #3E2723;
+            font-family: 'Outfit', sans-serif;
+        }
+        .header-yellow {
+            background-color: #FFD700;
+            border-bottom-left-radius: 32px;
+            border-bottom-right-radius: 32px;
+        }
+        .empty-illustration {
+            width: 200px;
+            height: 200px;
+            background: #FFFBEB;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+        .section-card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            border: 1px solid #FDF2D4;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .sticky-footer {
+            background: #FFFFFF;
+            padding: 20px 24px 40px;
+            border-top: 1px solid #FDF2D4;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .btn-yellow {
+            background-color: #FFD700;
+            color: #3E2723;
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="pb-32">
+    <!-- Sticky Header -->
+    <header class="header-yellow px-6 pt-12 pb-10 sticky top-0 z-50 shadow-lg mb-8">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='vendor_grocery_shop.html'" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-black shadow-sm active:scale-95 transition-all">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </button>
+                <div>
+                    <span class="text-[10px] font-bold text-black/60 uppercase tracking-widest block">Vendor Location</span>
+                    <p id="vendor-address" class="text-sm font-black text-black"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='grocery_order_history.html'" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-black">
+                    <i class="fa-solid fa-receipt"></i>
+                </button>
+                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-black/40">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="px-6">
+        <!-- Empty Cart State -->
+        <div id="empty-state" class="hidden text-center pt-10 animate-fade-in">
+            <div class="empty-illustration">
+                <i class="fa-solid fa-basket-shopping text-6xl text-primary opacity-40"></i>
+            </div>
+            <h2 class="text-2xl font-black text-brown-900 mb-2">No items added yet</h2>
+            <p class="text-sm text-brown-500 mb-10 px-10">Explore our grocery section and add your essentials to the cart.</p>
+            <button onclick="window.location.href='vendor_grocery_shop.html'" class="btn-yellow max-w-xs mx-auto">
+                Start Shopping <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- Filled Cart State -->
+        <div id="filled-state" class="hidden">
+            <h2 class="text-xl font-black text-brown-900 mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-cart-flatbed-suitcase text-primary"></i> Your Cart Items
+            </h2>
+            <div id="cart-list" class="space-y-4">
+                <!-- Items injected here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Sticky Footer for Filled State -->
+    <footer id="cart-footer" class="sticky-footer hidden">
+        <div class="flex items-center justify-between gap-6">
+            <div>
+                <p class="text-[10px] font-bold text-brown-400 uppercase tracking-widest">Total Amount</p>
+                <p id="cart-total" class="text-xl font-black text-brown-900">₹0.00</p>
+            </div>
+            <button onclick="window.location.href='checkout.html'" class="btn-yellow">
+                Checkout <i class="fa-solid fa-circle-check ml-1"></i>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        let cartItems = JSON.parse(localStorage.getItem('groceryCart')) || [];
+
+        function renderCart() {
+            const empty = document.getElementById('empty-state');
+            const filled = document.getElementById('filled-state');
+            const footer = document.getElementById('cart-footer');
+            const list = document.getElementById('cart-list');
+
+            if (cartItems.length === 0) {
+                empty.classList.remove('hidden');
+                filled.classList.add('hidden');
+                footer.classList.add('hidden');
+            } else {
+                empty.classList.add('hidden');
+                filled.classList.remove('hidden');
+                footer.classList.remove('hidden');
+                
+                list.innerHTML = cartItems.map((item, index) => `
+                    <div class="section-card flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0">
+                            <img src="${item.image}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-black text-brown-900 text-sm">${item.name}</h3>
+                            <p class="text-xs font-bold text-brown-400 mb-2">₹${item.price.toFixed(2)}</p>
+                            <div class="flex items-center gap-3">
+                                <button onclick="updateQty(${index}, -1)" class="w-6 h-6 rounded-full bg-brown-900 text-white flex items-center justify-center text-xs">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+                                <span class="text-sm font-black">${item.qty}</span>
+                                <button onclick="updateQty(${index}, 1)" class="w-6 h-6 rounded-full bg-primary text-brown-900 flex items-center justify-center text-xs">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button onclick="updateQty(${index}, -${item.qty})" class="text-red-400 p-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                const total = cartItems.reduce((acc, i) => acc + (i.price * i.qty), 0);
+                document.getElementById('cart-total').innerText = `₹${total.toFixed(2)}`;
+            }
+        }
+
+        function updateQty(index, delta) {
+            cartItems[index].qty += delta;
+            if (cartItems[index].qty < 1) {
+                cartItems.splice(index, 1);
+            }
+            localStorage.setItem('groceryCart', JSON.stringify(cartItems));
+            renderCart();
+        }
+
+        async function loadSessionAddress() {
+            try {
+                const sessionStr = localStorage.getItem('asa_vendor_session');
+                let vendorId = '';
+                if (sessionStr) {
+                    const session = JSON.parse(sessionStr);
+                    vendorId = session.currentVendorId || '';
+                }
+
+                if (!vendorId) {
+                    document.getElementById('vendor-address').innerText = "Session expired. Please log in.";
+                    return;
+                }
+
+                const client = window.supabaseClient || window.supabase;
+                if (!client) {
+                    document.getElementById('vendor-address').innerText = "System connection error.";
+                    return;
+                }
+
+                const { data, error } = await client
+                    .from('vendors')
+                    .select('lat, lng, address')
+                    .eq('id', vendorId)
+                    .single();
+
+                if (error || !data) {
+                    document.getElementById('vendor-address').innerText = "Address not found";
+                    return;
+                }
+
+                if (data.address && data.address.trim() !== '') {
+                    document.getElementById('vendor-address').innerText = data.address;
+                } else if (data.lat && data.lng) {
+                    document.getElementById('vendor-address').innerText = `Lat: ${data.lat}, Lng: ${data.lng}`;
+                } else {
+                    document.getElementById('vendor-address').innerText = "Location not set";
+                }
+            } catch (err) {
+                console.error("Session parse error", err);
+                document.getElementById('vendor-address').innerText = "Location sync failed";
+            }
+        }
+
+        window.onload = () => {
+            renderCart();
+            loadSessionAddress();
+        };
+    </script>
+</body>
+</html>

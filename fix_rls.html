@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ASA FOOD — Fix RLS Policies</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script>
+  tailwind.config = { theme: { extend: { colors: { primary: '#FFD700' } } } }
+</script>
+</head>
+<body class="bg-gray-950 min-h-screen flex items-center justify-center p-4 font-sans">
+
+<div class="w-full max-w-xl">
+
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <div class="w-16 h-16 bg-yellow-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-yellow-400/30">
+      <i class="fa-solid fa-shield-halved text-2xl text-black"></i>
+    </div>
+    <h1 class="text-2xl font-black text-white">Fix RLS Policies</h1>
+    <p class="text-gray-400 text-sm mt-1">ASA FOOD Vendor App — One-click Database Fix</p>
+  </div>
+
+  <!-- Status Card -->
+  <div id="status-card" class="bg-gray-900 border border-gray-800 rounded-3xl p-6 mb-4">
+
+    <div class="bg-red-950/50 border border-red-800/50 rounded-2xl p-4 mb-6">
+      <div class="flex gap-3">
+        <i class="fa-solid fa-circle-exclamation text-red-400 mt-0.5"></i>
+        <div>
+          <p class="text-red-300 font-bold text-sm">Problem Detected</p>
+          <p class="text-red-400/80 text-xs mt-1">RLS policy is blocking INSERT to <code class="bg-red-900/50 px-1 rounded">products</code> table — error code <code class="bg-red-900/50 px-1 rounded">42501</code></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAT Input -->
+    <div class="mb-5">
+      <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+        Supabase Personal Access Token
+      </label>
+      <input
+        id="pat-input"
+        type="password"
+        placeholder="sbp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-yellow-400 transition-all font-mono"
+      >
+      <p class="text-gray-500 text-xs mt-2">
+        Get it from:
+        <a href="https://supabase.com/dashboard/account/tokens" target="_blank" class="text-yellow-400 hover:underline">
+          supabase.com/dashboard/account/tokens
+        </a>
+        → Generate new token
+      </p>
+    </div>
+
+    <!-- Run Button -->
+    <button
+      id="run-btn"
+      onclick="runFix()"
+      class="w-full py-4 bg-yellow-400 text-black rounded-2xl font-black text-sm hover:bg-yellow-300 active:scale-95 transition-all shadow-lg shadow-yellow-400/20 flex items-center justify-center gap-2"
+    >
+      <i class="fa-solid fa-bolt"></i>
+      Run RLS Fix Now
+    </button>
+  </div>
+
+  <!-- Log Output -->
+  <div id="log-box" class="bg-gray-900 border border-gray-800 rounded-3xl p-5 hidden">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+      <i class="fa-solid fa-terminal mr-1"></i>Log Output
+    </p>
+    <div id="log-content" class="space-y-1 font-mono text-xs"></div>
+  </div>
+
+</div>
+
+<script>
+const PROJECT_REF = 'hwddmjolzmdurijaitia';
+const SUPABASE_URL = `https://${PROJECT_REF}.supabase.co`;
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3ZGRtam9sem1kdXJpamFpdGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzYyNDcsImV4cCI6MjA5MjcxMjI0N30.qC4F-PSpWqHBHFhXAADNyIyyUNJ_P05N4j-Zxoz3hkU';
+
+function log(msg, type = 'info') {
+  const el = document.getElementById('log-content');
+  const colors = { info: 'text-gray-300', ok: 'text-green-400', error: 'text-red-400', warn: 'text-yellow-400' };
+  const icons  = { info: '▶', ok: '✅', error: '❌', warn: '⚠️' };
+  el.innerHTML += `<p class="${colors[type]}">${icons[type]} ${msg}</p>`;
+  document.getElementById('log-box').scrollTop = 9999;
+}
+
+async function runSQL(label, sql, pat) {
+  log(`${label}...`);
+  const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${pat}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ query: sql })
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    log(`${label} — Done`, 'ok');
+    return { ok: true, data };
+  } else {
+    const err = await res.json().catch(() => ({}));
+    log(`${label} — FAILED: ${err.message || res.status}`, 'error');
+    return { ok: false, err };
+  }
+}
+
+async function testInsert() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/products`, {
+    method: 'POST',
+    headers: {
+      'apikey': ANON_KEY,
+      'Authorization': `Bearer ${ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({
+      name: '__rls_test_probe__', product_name: '__rls_test_probe__',
+      vendor_mobile: '9999999000', vendor_id: '918b6ea9-fe0d-4924-ad10-e36418f0227a',
+      price: 1, is_available: true, is_manual_recommend: true
+    })
+  });
+
+  if (res.status === 201 || res.status === 200) {
+    // Clean up test row
+    await fetch(`${SUPABASE_URL}/rest/v1/products?name=eq.__rls_test_probe__`, {
+      method: 'DELETE',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+    });
+    return true;
+  }
+  return false;
+}
+
+async function runFix() {
+  const pat = document.getElementById('pat-input').value.trim();
+  if (!pat) {
+    alert('Please enter your Supabase Personal Access Token first.');
+    return;
+  }
+
+  const btn = document.getElementById('run-btn');
+  btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Running...';
+  btn.disabled = true;
+
+  document.getElementById('log-box').classList.remove('hidden');
+  document.getElementById('log-content').innerHTML = '';
+
+  log('Starting RLS fix for products table...');
+
+  const steps = [
+    ['Drop old conflicting policies', `
+      DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.products;
+      DROP POLICY IF EXISTS "Allow authenticated inserts" ON public.products;
+      DROP POLICY IF EXISTS "Allow public inserts" ON public.products;
+      DROP POLICY IF EXISTS "Users can only insert their own products" ON public.products;
+      DROP POLICY IF EXISTS "vendors_insert_products" ON public.products;
+      DROP POLICY IF EXISTS "vendors_update_products" ON public.products;
+      DROP POLICY IF EXISTS "vendors_delete_products" ON public.products;
+      DROP POLICY IF EXISTS "anyone_read_products" ON public.products;
+      DROP POLICY IF EXISTS "products_select_public" ON public.products;
+      DROP POLICY IF EXISTS "products_insert_vendor" ON public.products;
+      DROP POLICY IF EXISTS "products_update_vendor" ON public.products;
+      DROP POLICY IF EXISTS "products_delete_vendor" ON public.products;
+      DROP POLICY IF EXISTS "public_read_products" ON public.products;
+    `],
+    ['Enable RLS on products', `ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;`],
+    ['Create SELECT policy (public read)', `CREATE POLICY "products_select_public" ON public.products FOR SELECT TO anon, authenticated USING (true);`],
+    ['Create INSERT policy (vendor write)', `CREATE POLICY "products_insert_vendor" ON public.products FOR INSERT TO anon, authenticated WITH CHECK (vendor_mobile IS NOT NULL AND length(vendor_mobile) >= 10);`],
+    ['Create UPDATE policy (vendor write)', `CREATE POLICY "products_update_vendor" ON public.products FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (vendor_mobile IS NOT NULL AND length(vendor_mobile) >= 10);`],
+    ['Create DELETE policy (vendor delete)', `CREATE POLICY "products_delete_vendor" ON public.products FOR DELETE TO anon, authenticated USING (true);`],
+  ];
+
+  let allOk = true;
+  for (const [label, sql] of steps) {
+    const { ok } = await runSQL(label, sql, pat);
+    if (!ok) allOk = false;
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  log('Verifying: testing live INSERT with anon key...', 'info');
+  await new Promise(r => setTimeout(r, 800));
+  const insertWorks = await testInsert();
+
+  if (insertWorks) {
+    log('INSERT test PASSED — products table is now writable!', 'ok');
+    log('Vendors can now add/edit/delete products from the app.', 'ok');
+    btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Fix Applied Successfully!';
+    btn.className = btn.className.replace('bg-yellow-400 text-black', 'bg-green-500 text-white');
+  } else {
+    log('INSERT test still failing — check policy names in Supabase Dashboard.', 'warn');
+    btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Partial — Check Logs';
+    btn.className = btn.className.replace('bg-yellow-400 text-black', 'bg-orange-500 text-white');
+  }
+
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
